@@ -116,6 +116,12 @@ textarea{width:100%;min-height:140px;resize:vertical;font:inherit;color:var(--in
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 
 
+.mytable{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.mytable table{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+.mytable th,.mytable td{padding:9px 12px;text-align:left;border-top:1px solid var(--line);white-space:nowrap}
+.mytable thead th{border-top:0;font-size:13px;color:var(--muted);font-weight:700}
+.histbox summary{cursor:pointer;color:var(--muted);font-size:14px;padding:4px 0}
+.histbox .hist{margin-top:8px}
 .field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .field input[type=text]{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:9px 12px;width:100%}
 </style>
@@ -257,16 +263,17 @@ function wrongCount(){const w=new Set(store.get('qz-wrong',[]));return SUBJECTS.
 /* ================= 畫面：設定 ================= */
 function renderSetup(){
   if(![...S.subjects].some(id=>SUBJECTS.find(s=>s.id===id)) && SUBJECTS[0]) S.subjects=new Set([SUBJECTS[0].id]);
-  const p=pool(); const max=p.length; if(S.count>max)S.count=max; if(S.count<1&&max>0)S.count=Math.min(10,max);
+  const p=pool(); const max=p.length; S.count=Math.min(Math.max(1,store.get('qz-count',10)),max);
   const hist=store.get('qz-hist',[]);
   $('#app').innerHTML=`
   <div class="stack">
     <div><div class="eyebrow">軍學科・自我測驗</div><h1>軍學科題庫</h1>
       <p class="muted" style="margin:6px 0 0">選科目、題型與題數。簡答題按關鍵字分項給分，寫錯一兩個字只扣那一項。</p></div>
     <div class="panel stack">
-      <label class="field" style="max-width:320px"><span class="label" style="margin:0">姓名</span><input type="text" id="who" maxlength="20" placeholder="輸入你的名字" value="${esc(S.name)}" autocomplete="name"></label>
+      <label class="field" style="max-width:320px"><span class="label" style="margin:0">姓名（選填）</span><input type="text" id="who" maxlength="20" placeholder="輸入你的名字" value="${esc(S.name)}" autocomplete="name"></label>
       <div><div class="label">科目</div><div class="row">
         ${SUBJECTS.map(s=>`<button class="chip" data-subj="${esc(s.id)}" aria-pressed="${S.subjects.has(s.id)}">${esc(s.name)}<span class="n">${s.questions.length}</span></button>`).join('')||'<span class="muted">尚無科目</span>'}
+        ${SUBJECTS.length>1?`<button class="chip" id="allSubj">${SUBJECTS.every(x=>S.subjects.has(x.id))?'全不選':'全選'}</button>`:''}
       </div></div>
       <div><div class="label">題型</div><div class="seg" role="group">
         ${[['mix','混合'],['mc','選擇題'],['sa','簡答題']].map(([k,t])=>`<button data-mode="${k}" aria-pressed="${S.mode===k}">${t}</button>`).join('')}
@@ -277,20 +284,21 @@ function renderSetup(){
         <button class="chip" data-all>全部</button>
       </div></div>
       <label class="check"><input type="checkbox" id="wrongOnly" ${S.wrongOnly?'checked':''}> 只考錯題本（${wrongCount()} 題）</label>
-      <div class="row"><button class="btn" id="start" ${max&&S.name.trim()?'':'disabled'}>開始測驗</button>${S.name.trim()?'':'<span class="hint">先輸入姓名才能開始</span>'}</div>
+      <div><button class="btn" id="start" ${max?'':'disabled'}>開始測驗</button></div>
     </div>
-    ${hist.length?`<div class="stack" style="gap:10px"><h2>最近成績</h2><div class="hist">${hist.slice(0,8).map(h=>`<div><span>${esc(h.date)}・${esc(h.names)}・${h.n} 題</span><span class="mono">${h.score} 分</span></div>`).join('')}</div></div>`:''}
+    ${myRecords(hist)}
     <p class="hint" style="margin:0">${BANK_STATUS}</p>
     <p class="hint" style="margin:0">本站會記錄你的姓名、成績、IP 與裝置資訊（系統、瀏覽器、機型），只有管理者看得到，用於統計使用情況。</p>
   </div>`;
   document.querySelectorAll('[data-subj]').forEach(b=>b.onclick=()=>{const id=b.dataset.subj;S.subjects.has(id)?S.subjects.delete(id):S.subjects.add(id);store.set('qz-subjects',[...S.subjects]);renderSetup()});
   document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;store.set('qz-mode',S.mode);S.count=Math.max(S.count,1);renderSetup()});
   document.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{S.count=Math.min(max,Math.max(1,S.count+ +b.dataset.step));$('#cnt').value=S.count;store.set('qz-count',S.count)});
-  $('[data-all]').onclick=()=>{S.count=max;$('#cnt').value=max};
+  $('[data-all]').onclick=()=>{S.count=max;$('#cnt').value=max;store.set('qz-count',999)};
   $('#cnt').onchange=e=>{S.count=Math.min(max,Math.max(1,parseInt(e.target.value)||1));e.target.value=S.count;store.set('qz-count',S.count)};
   $('#wrongOnly').onchange=e=>{S.wrongOnly=e.target.checked;renderSetup()};
   $('#start').onclick=()=>startQuiz(shuffle(pool()).slice(0,S.count));
-  $('#who').oninput=e=>{S.name=e.target.value;store.set('qz-name',S.name.trim());const b=$('#start');b.disabled=!(max&&S.name.trim());const h=b.nextElementSibling;if(h)h.hidden=!!S.name.trim();};
+  $('#who').oninput=e=>{S.name=e.target.value;store.set('qz-name',S.name.trim());};
+  const all=$('#allSubj'); if(all) all.onclick=()=>{const every=SUBJECTS.every(x=>S.subjects.has(x.id));S.subjects=new Set(every?[]:SUBJECTS.map(x=>x.id));store.set('qz-subjects',[...S.subjects]);renderSetup()};
 }
 
 function startQuiz(qs){
@@ -365,11 +373,33 @@ function syncWrong(){
   store.set('qz-wrong',[...wrong]);
 }
 function quizScore(){return Math.round(S.quiz.reduce((a,x)=>a+(x.done?x.score:0),0)/S.quiz.length*100)}
+function subjBreakdown(){
+  const m=new Map();
+  S.quiz.forEach(x=>{const n=subjName(x.q.subject);const o=m.get(n)||{name:n,sum:0,n:0};o.sum+=x.done?x.score:0;o.n++;m.set(n,o)});
+  return [...m.values()].map(o=>({name:o.name,score:Math.round(o.sum/o.n*100),n:o.n}));
+}
+function myRecords(hist){
+  if(!hist.length) return `<div class="stack" style="gap:8px"><h2>我的成績</h2><p class="muted" style="margin:0">還沒有考過。交卷後，每個科目的次數與分數會顯示在這裡。</p></div>`;
+  const agg=new Map();
+  hist.slice().reverse().forEach(h=>{
+    const parts=h.subj&&h.subj.length?h.subj:[{name:h.names,score:h.score,n:h.n}];
+    parts.forEach(p=>{const a=agg.get(p.name)||{name:p.name,times:0,best:0,sum:0,last:null,lastDate:''};
+      a.times++;a.best=Math.max(a.best,p.score);a.sum+=p.score;a.last=p.score;a.lastDate=h.date;agg.set(p.name,a)});
+  });
+  const rows=[...agg.values()];
+  const cls=v=>v>=80?'verdict-ok':v>=60?'verdict-half':'verdict-no';
+  return `<div class="stack" style="gap:10px"><h2>我的成績</h2>
+    <div class="mytable"><table><thead><tr><th>科目</th><th>次數</th><th>最近</th><th>最高</th><th>平均</th></tr></thead><tbody>
+    ${rows.map(a=>`<tr><td>${esc(a.name)}</td><td class="mono">${a.times}</td><td class="mono ${cls(a.last)}">${a.last}<span class="muted" style="font-size:12px">　${esc(a.lastDate)}</span></td><td class="mono">${a.best}</td><td class="mono">${Math.round(a.sum/a.times)}</td></tr>`).join('')}
+    </tbody></table></div>
+    <details class="histbox"><summary>每次測驗紀錄（${hist.length}）</summary><div class="hist">${hist.slice(0,50).map(h=>`<div><span>${esc(h.date)}・${esc(h.names)}・${h.n} 題</span><span class="mono ${cls(h.score)}">${h.score} 分</span></div>`).join('')}</div></details>
+    <p class="hint" style="margin:0">成績存在這台裝置的瀏覽器裡，換手機或電腦就看不到。</p></div>`;
+}
 function finish(){
   syncWrong();
   const names=[...new Set(S.quiz.map(x=>subjName(x.q.subject)))].join('、');
   const d=new Date(); const date=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-  const hist=store.get('qz-hist',[]); hist.unshift({date,names,n:S.quiz.length,score:quizScore()}); store.set('qz-hist',hist.slice(0,30));
+  const hist=store.get('qz-hist',[]); hist.unshift({date,names,n:S.quiz.length,score:quizScore(),subj:subjBreakdown()}); store.set('qz-hist',hist.slice(0,200));
   S.screen='result'; render(); window.scrollTo(0,0);
   logScore();
 }
@@ -410,7 +440,7 @@ function renderResult(){
       e.preventDefault();
       if(b.dataset.waive!==undefined) x.g.orderWaived=!x.g.orderWaived; else cycleKw(x.g,+b.dataset.kw);
       x.score=saScore(x.g); syncWrong();
-      const hist=store.get('qz-hist',[]); if(hist[0]){hist[0].score=quizScore();store.set('qz-hist',hist)}
+      const hist=store.get('qz-hist',[]); if(hist[0]){hist[0].score=quizScore();hist[0].subj=subjBreakdown();store.set('qz-hist',hist)}
       const open=+dt.dataset.i; renderResult(); const d=document.querySelector(`details[data-i="${open}"]`); if(d)d.open=true;});
   });
   if($('#retryWrong')) $('#retryWrong').onclick=()=>startQuiz(shuffle(missed));
