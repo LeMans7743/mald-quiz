@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>軍學科題庫</title>
+<meta name="description" content="軍學科自我測驗：選擇題與簡答題，簡答題按關鍵字分項給分。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+
+/* Layout: single 760px column, three screens (setup → quiz → result), staff-paper grid ground */
+:root{
+  --bg:#ECEFE9; --surface:#F8F9F6; --ink:#1B2320; --muted:#5C6962; --line:#C9D0C7;
+  --accent:#2C5A47; --accent-ink:#F3F6F2; --signal:#A9681A;
+  --ok:#2B7A4B; --ok-bg:#DCEEDF; --half:#A9681A; --half-bg:#F5E6CF; --no:#AE3D2B; --no-bg:#F4DCD6;
+  --grid:rgba(44,90,71,.07);
+  --f-display:"Noto Serif TC","Songti TC",serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131815; --surface:#1B221E; --ink:#E3E8E1; --muted:#93A098; --line:#2D3832;
+  --accent:#86BBA0; --accent-ink:#0F1512; --signal:#E0A653;
+  --ok:#7CC796; --ok-bg:#1E3427; --half:#E0A653; --half-bg:#3A2D1A; --no:#EE8A78; --no-bg:#3D211C;
+  --grid:rgba(134,187,160,.06); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131815; --surface:#1B221E; --ink:#E3E8E1; --muted:#93A098; --line:#2D3832;
+  --accent:#86BBA0; --accent-ink:#0F1512; --signal:#E0A653;
+  --ok:#7CC796; --ok-bg:#1E3427; --half:#E0A653; --half-bg:#3A2D1A; --no:#EE8A78; --no-bg:#3D211C;
+  --grid:rgba(134,187,160,.06); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.65;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px}
+.wrap{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:28px 64px}
+h1,h2{font-family:var(--f-display);font-weight:900;text-wrap:balance;margin:0;letter-spacing:.02em}
+h1{font-size:clamp(28px,6vw,38px);line-height:1.2}
+h2{font-size:20px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--signal)}
+.muted{color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.stack{display:flex;flex-direction:column;gap:20px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px}
+.label{font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-bottom:8px}
+
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 14px;font-size:15px}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chip .n{font-family:var(--f-mono);font-size:12px;opacity:.75;margin-left:6px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:8px 16px;font-size:15px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.btn{border:0;border-radius:6px;padding:12px 22px;font-weight:700;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:500}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:6px}
+.stepper button{border:0;background:transparent;width:40px;height:40px;font-size:20px}
+.stepper input{width:56px;text-align:center;border:0;background:transparent;font-family:var(--f-mono);font-size:18px;color:var(--ink)}
+.check{display:flex;gap:8px;align-items:center;font-size:15px}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+
+/* quiz */
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--signal);transition:width .3s}
+.qhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.tag{font-size:12px;font-weight:700;letter-spacing:.08em;padding:2px 8px;border-radius:3px;border:1px solid currentColor}
+.tag.mc{color:var(--accent)} .tag.sa{color:var(--signal)}
+.qtext{font-size:20px;font-weight:700;line-height:1.55;margin:0}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;gap:12px;align-items:flex-start;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:12px 14px;font-size:16px}
+.opt .k{font-family:var(--f-mono);font-weight:600;color:var(--muted);min-width:1.2em}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt.right{border-color:var(--ok);background:var(--ok-bg)}
+.opt.wrong{border-color:var(--no);background:var(--no-bg)}
+.opt:disabled{cursor:default}
+textarea{width:100%;min-height:140px;resize:vertical;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.hint{font-size:13px;color:var(--muted)}
+.fb{border-top:1px dashed var(--line);padding-top:16px;display:flex;flex-direction:column;gap:12px}
+.kws{display:flex;flex-wrap:wrap;gap:6px}
+.kw{border:1px solid transparent;border-radius:4px;padding:3px 10px;font-size:14px;display:inline-flex;gap:6px;align-items:center}
+.kw.full{background:var(--ok-bg);color:var(--ok)}
+.kw.half{background:var(--half-bg);color:var(--half)}
+.kw.miss{background:transparent;border-color:var(--line);color:var(--muted)}
+.kw.over{border-style:dashed;border-color:currentColor}
+.kw b{font-family:var(--f-mono);font-size:12px}
+.scoreline{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.big{font-family:var(--f-mono);font-weight:600;font-size:28px}
+.verdict-ok{color:var(--ok)} .verdict-half{color:var(--half)} .verdict-no{color:var(--no)}
+.ans{background:var(--bg);border-radius:4px;padding:12px 14px;font-size:15px;white-space:pre-line}
+.warn{color:var(--no);font-size:14px}
+
+/* result */
+.hero-score{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.hero-score .num{font-family:var(--f-mono);font-weight:600;font-size:72px;line-height:1}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat{border-left:3px solid var(--line);padding-left:12px}
+.stat .v{font-family:var(--f-mono);font-size:22px;font-weight:600}
+.review{display:flex;flex-direction:column;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.review details{border-top:1px solid var(--line)}
+.review details:first-child{border-top:0}
+.review summary{display:grid;grid-template-columns:2.5em 1fr auto;gap:10px;padding:12px 14px;cursor:pointer;list-style:none;align-items:baseline}
+.review summary::-webkit-details-marker{display:none}
+.review summary .t{min-width:0}
+.review .body{padding:0 14px 14px 14px;display:flex;flex-direction:column;gap:10px;font-size:15px}
+.dot{font-family:var(--f-mono);font-size:14px;font-weight:600}
+.hist{display:flex;flex-direction:column;gap:6px;font-size:14px}
+.hist div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:6px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+
+
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field input[type=text]{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:9px 12px;width:100%}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="muted">題庫載入中…</p></div>
+<script>
+/* ================= 設定 =================
+   SCRIPT_URL：Google Apps Script 部署後的「網頁應用程式」網址（.../exec）。
+   留空時網站會用 bank.json，而且不會回傳紀錄。 */
+const CONFIG = {
+  SCRIPT_URL: '__SCRIPT_URL__',
+  IP_API: 'https://api.ipify.org?format=json'
+};
+
+let SUBJECTS = [];
+let BANK_STATUS = '題庫載入中…';
+
+/* ================= 儲存（僅此瀏覽器） ================= */
+const store={
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},
+  del(k){try{localStorage.removeItem(k)}catch(e){}}
+};
+
+/* ================= 簡答評分 ================= */
+const CHAR_MAP={'劃':'畫','週':'周','臺':'台','蒐':'收','搜':'收','佈':'布','裏':'裡','爲':'為','內':'内'};
+function norm(s){
+  return (s||'').replace(/[！-～]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0))
+    .replace(/[～〜]/g,'~').replace(/[－—–]/g,'-')
+    .toLowerCase()
+    .replace(/[\s，。、,.;；:：「」『』()（）【】\[\]!！?？→>＞=＋+'"“”‘’·之的]/g,'')
+    .replace(/./g,c=>CHAR_MAP[c]||c);
+}
+function lcs(a,b){
+  const m=a.length,n=b.length; let prev=new Array(n+1).fill(0);
+  for(let i=1;i<=m;i++){const cur=[0];for(let j=1;j<=n;j++){cur[j]=a[i-1]===b[j-1]?prev[j-1]+1:Math.max(prev[j],cur[j-1]);}prev=cur;}
+  return prev[n];
+}
+function nearScore(kw,txt){
+  const n=kw.length; let best=0;
+  for(let i=0;i<txt.length;i++){ if(!kw.includes(txt[i]))continue; best=Math.max(best,lcs(kw,txt.slice(i,i+n+1))); if(best===n)break;}
+  return best;
+}
+function gradeSA(q,raw){
+  const txt=norm(raw);
+  const res=(q.keys||[]).map(k=>{
+    const alts=k.split('|').map(a=>a.trim()).filter(Boolean); let credit=0,pos=-1;
+    for(const a of alts){
+      const na=norm(a); const idx=txt.indexOf(na);
+      if(na && idx>=0){credit=1;pos=idx;break;}
+      const n=na.length; if(n<3)continue;
+      const hit=nearScore(na,txt); const tol=n>=6?2:1;
+      if(hit>=n-tol) credit=Math.max(credit,.5);
+    }
+    return {label:alts[0]||k,credit,pos,over:null};
+  });
+  let orderBad=false;
+  if(q.ordered){const ps=res.filter(r=>r.credit===1).map(r=>r.pos);for(let i=1;i<ps.length;i++)if(ps[i]<ps[i-1]){orderBad=true;break;}}
+  return {kws:res,orderBad};
+}
+function saScore(g){
+  const n=g.kws.length; if(!n)return 0;
+  const sum=g.kws.reduce((a,k)=>a+(k.over!==null?k.over:k.credit),0);
+  return Math.round((sum/n)*(g.orderBad && !g.orderWaived?0.8:1)*100)/100;
+}
+
+
+/* ================= 從參考答案自動抓關鍵字 ================= */
+const KW_PRE=['其目的在','目的在','藉由','透過','強調','實施','可選出','要以','介於','取代以往注重','取代以往','注重','進行','召集','一條','等','僅','更','以','依'];
+const KW_STOP=new Set(['產物','內容','方式','等','時','之','的','階段','原則','執行','藉由','比較','等比較','其目的在','目的在','介於','之間','分配','可']);
+const KW_SUF=['為主','為基礎','分配原則','原則','之間','等','時','之','的','內容','產物','方式'];
+function trimKw(s){
+  s=s.replace(/^[\s\d]+$/,'').trim();
+  let changed=true;
+  while(changed&&s.length>2){changed=false;
+    for(const p of KW_PRE){if(s.startsWith(p)&&s.length-p.length>=2){s=s.slice(p.length);changed=true;break;}}
+    for(const x of KW_SUF){if(s.endsWith(x)&&s.length-x.length>=2){s=s.slice(0,-x.length);changed=true;break;}}
+  }
+  return s.trim();
+}
+function extractKeys(answer,question){
+  const out=[]; const nq=norm(question||'');
+  const add=k=>{k=trimKw(k); if(!k||KW_STOP.has(k))return; if(k.length<2&&!/\d/.test(k))return;
+    const nk=norm(k); if(!nk)return;     if(out.some(o=>norm(o)===nk))return; out.push(k);};
+  let text=(answer||'').replace(/\r/g,'');
+  // 引號、括號內的字直接當關鍵字
+  const quoted=[]; text=text.replace(/[「『“"]([^」』”"]{1,30})[」』”"]/g,(m,a)=>{a.split(/[、，,；;]/).map(x=>x.trim()).filter(Boolean).forEach(x=>quoted.push(x));return '、';});
+  const paren=[]; text=text.replace(/[（(]([^）)]{1,20})[）)]/g,(m,a)=>{a.split(/[、，,；;]/).map(x=>x.trim()).filter(Boolean).forEach(x=>paren.push(x));return '、';});
+  // 分數、範圍先保護起來
+  text=text.replace(/(\d+)\s*[\/／]\s*(\d+)/g,'$1/$2').replace(/(\d+)\s*[～~〜]\s*(\d+)/g,'$1~$2');
+  // 冒號前的標籤若只是題目裡的字（例如「戰役層級：」）就略過
+  text=text.replace(/([^\n、，,。；;\s：:]+)[：:]/g,(m,a)=>{const t=trimKw(a.replace(/^\d+\s*[\.．、)）]/,''));return nq.includes(norm(t))?'\n':a+'\n';});
+  const segs=text
+    .replace(/(^|[\s\n])\d+\s*[\.．、)）](?!\d)/g,'\n')     // 1. 2、 編號
+    .split(/[\n、，,。；;：:→＞>－—]|\s{1,}/)
+    .map(s=>s.trim()).filter(Boolean);
+  for(let seg of segs){
+    // 句子裡有引號：引號外的部分各自當一段
+    seg=trimKw(seg);
+    if(seg.length>9){ // 長句再用 或／及／與 切一次
+      const parts=seg.split(/或|及|以及|之|的/).map(trimKw).filter(p=>p.length>=2);
+      if(parts.length>1){parts.forEach(add);continue;}
+    }
+    add(seg);
+  }
+  // 引號內容優先：如果某段長句包含引號字詞，就用引號字詞取代它
+  quoted.forEach(add);
+  paren.forEach(add);
+  // 分數類補同義寫法
+  return out.map(k=>{
+    const m=k.match(/^(\d)\/(\d)/); const cn='零一二三四五六七八九';
+    if(m&&k===m[0]) return `${k}|${cn[m[2]]}分之${cn[m[1]]}`;
+    const r=k.match(/^(\d)~(\d)$/); if(r) return `${k}|${r[1]}-${r[2]}|${r[1]}到${r[2]}|${r[1]}至${r[2]}|${cn[r[1]]}到${cn[r[2]]}|${cn[r[1]]}至${cn[r[2]]}`;
+    return k;
+  });
+}
+
+/* ================= 狀態 ================= */
+const S={
+  screen:'setup',
+  subjects:new Set(store.get('qz-subjects',['mdmp'])),
+  mode:store.get('qz-mode','mix'), count:store.get('qz-count',10), wrongOnly:false,
+  quiz:[], idx:0, name:store.get('qz-name','')
+};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const subjName=id=>(SUBJECTS.find(s=>s.id===id)||{}).name||'';
+
+function pool(){
+  const wrong=new Set(store.get('qz-wrong',[]));
+  return SUBJECTS.filter(s=>S.subjects.has(s.id)).flatMap(s=>s.questions)
+    .filter(q=>S.mode==='mix'||(S.mode==='mc'?q.type==='mc':q.type==='sa'))
+    .filter(q=>!S.wrongOnly||wrong.has(q.id));
+}
+function wrongCount(){const w=new Set(store.get('qz-wrong',[]));return SUBJECTS.filter(s=>S.subjects.has(s.id)).flatMap(s=>s.questions).filter(q=>w.has(q.id)).length}
+
+/* ================= 畫面：設定 ================= */
+function renderSetup(){
+  if(![...S.subjects].some(id=>SUBJECTS.find(s=>s.id===id)) && SUBJECTS[0]) S.subjects=new Set([SUBJECTS[0].id]);
+  const p=pool(); const max=p.length; if(S.count>max)S.count=max; if(S.count<1&&max>0)S.count=Math.min(10,max);
+  const hist=store.get('qz-hist',[]);
+  $('#app').innerHTML=`
+  <div class="stack">
+    <div><div class="eyebrow">軍學科・自我測驗</div><h1>軍學科題庫</h1>
+      <p class="muted" style="margin:6px 0 0">選科目、題型與題數。簡答題按關鍵字分項給分，寫錯一兩個字只扣那一項。</p></div>
+    <div class="panel stack">
+      <label class="field" style="max-width:320px"><span class="label" style="margin:0">姓名</span><input type="text" id="who" maxlength="20" placeholder="輸入你的名字" value="${esc(S.name)}" autocomplete="name"></label>
+      <div><div class="label">科目</div><div class="row">
+        ${SUBJECTS.map(s=>`<button class="chip" data-subj="${esc(s.id)}" aria-pressed="${S.subjects.has(s.id)}">${esc(s.name)}<span class="n">${s.questions.length}</span></button>`).join('')||'<span class="muted">尚無科目</span>'}
+      </div></div>
+      <div><div class="label">題型</div><div class="seg" role="group">
+        ${[['mix','混合'],['mc','選擇題'],['sa','簡答題']].map(([k,t])=>`<button data-mode="${k}" aria-pressed="${S.mode===k}">${t}</button>`).join('')}
+      </div></div>
+      <div><div class="label">題數</div><div class="row">
+        <div class="stepper"><button data-step="-1" aria-label="減少">−</button><input id="cnt" type="number" min="1" max="${max}" value="${S.count}"><button data-step="1" aria-label="增加">＋</button></div>
+        <span class="muted mono" style="font-size:14px">/ 共 ${max} 題可出</span>
+        <button class="chip" data-all>全部</button>
+      </div></div>
+      <label class="check"><input type="checkbox" id="wrongOnly" ${S.wrongOnly?'checked':''}> 只考錯題本（${wrongCount()} 題）</label>
+      <div class="row"><button class="btn" id="start" ${max&&S.name.trim()?'':'disabled'}>開始測驗</button>${S.name.trim()?'':'<span class="hint">先輸入姓名才能開始</span>'}</div>
+    </div>
+    ${hist.length?`<div class="stack" style="gap:10px"><h2>最近成績</h2><div class="hist">${hist.slice(0,8).map(h=>`<div><span>${esc(h.date)}・${esc(h.names)}・${h.n} 題</span><span class="mono">${h.score} 分</span></div>`).join('')}</div></div>`:''}
+    <p class="hint" style="margin:0">${BANK_STATUS}</p>
+    <p class="hint" style="margin:0">本站會記錄你的姓名、成績、IP 與裝置資訊（系統、瀏覽器、機型），只有管理者看得到，用於統計使用情況。</p>
+  </div>`;
+  document.querySelectorAll('[data-subj]').forEach(b=>b.onclick=()=>{const id=b.dataset.subj;S.subjects.has(id)?S.subjects.delete(id):S.subjects.add(id);store.set('qz-subjects',[...S.subjects]);renderSetup()});
+  document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;store.set('qz-mode',S.mode);S.count=Math.max(S.count,1);renderSetup()});
+  document.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{S.count=Math.min(max,Math.max(1,S.count+ +b.dataset.step));$('#cnt').value=S.count;store.set('qz-count',S.count)});
+  $('[data-all]').onclick=()=>{S.count=max;$('#cnt').value=max};
+  $('#cnt').onchange=e=>{S.count=Math.min(max,Math.max(1,parseInt(e.target.value)||1));e.target.value=S.count;store.set('qz-count',S.count)};
+  $('#wrongOnly').onchange=e=>{S.wrongOnly=e.target.checked;renderSetup()};
+  $('#start').onclick=()=>startQuiz(shuffle(pool()).slice(0,S.count));
+  $('#who').oninput=e=>{S.name=e.target.value;store.set('qz-name',S.name.trim());const b=$('#start');b.disabled=!(max&&S.name.trim());const h=b.nextElementSibling;if(h)h.hidden=!!S.name.trim();};
+}
+
+function startQuiz(qs){
+  S.quiz=qs.map(q=>({q,done:false,score:0,opts:q.type==='mc'?shuffle(q.options):null,pick:null,text:'',g:null}));
+  S.idx=0; S.screen='quiz'; render(); window.scrollTo(0,0);
+}
+
+/* ================= 畫面：作答 ================= */
+function renderQuiz(){
+  const it=S.quiz[S.idx], q=it.q, total=S.quiz.length;
+  let body='';
+  if(q.type==='mc'){
+    body=`<div class="opts">${it.opts.map((o,i)=>{
+      let cls=''; if(it.done){ if(o===q.options[0])cls='right'; else if(o===it.pick)cls='wrong'; }
+      return `<button class="opt ${cls}" data-opt="${i}" ${it.done?'disabled':''}><span class="k">${'ABCDEF'[i]}</span><span>${esc(o)}</span></button>`}).join('')}</div>`;
+    if(it.done) body+=`<div class="fb"><div class="scoreline"><span class="big ${it.score?'verdict-ok':'verdict-no'}">${it.score?'答對':'答錯'}</span>${it.score?'':`<span class="muted">正解：${esc(q.options[0])}</span>`}</div>${q.note?`<div class="ans">📝 ${esc(q.note)}</div>`:''}</div>`;
+  } else {
+    body=`<textarea id="ans" placeholder="直接寫答案，順序、標點、空格都不影響給分" ${it.done?'readonly':''}>${esc(it.text)}</textarea>
+      ${it.done?'':`<div class="hint">共 ${(q.keys||[]).length} 個給分點${q.ordered?'，需依正確順序作答':''}</div>`}`;
+    if(it.done) body+=feedbackSA(it);
+  }
+  $('#app').innerHTML=`
+  <div class="stack">
+    <div class="stack" style="gap:10px">
+      <div class="qhead"><span class="mono muted">第 ${S.idx+1} / ${total} 題</span><button class="btn ghost" id="quit" style="padding:6px 12px;font-size:14px">結束並交卷</button></div>
+      <div class="bar"><i style="width:${(S.idx+(it.done?1:0))/total*100}%"></i></div>
+    </div>
+    <div class="panel stack">
+      <div class="row"><span class="tag ${q.type}">${q.type==='mc'?'選擇題':'簡答題'}</span><span class="muted" style="font-size:13px">${esc(subjName(q.subject))}</span></div>
+      <p class="qtext">${esc(q.q)}</p>
+      ${body}
+      <div class="row">
+        ${it.done?`<button class="btn" id="next">${S.idx+1<total?'下一題':'看成績'}</button>`:(q.type==='sa'?`<button class="btn" id="submit">送出</button>`:'')}
+      </div>
+    </div>
+  </div>`;
+  if(q.type==='mc'&&!it.done) document.querySelectorAll('[data-opt]').forEach(b=>b.onclick=()=>{it.pick=it.opts[+b.dataset.opt];it.score=it.pick===q.options[0]?1:0;it.done=true;renderQuiz()});
+  if(q.type==='sa'){
+    const ta=$('#ans'); if(!it.done){ta.focus();ta.oninput=e=>it.text=e.target.value;}
+    if($('#submit')) $('#submit').onclick=()=>{it.text=ta.value;it.g=gradeSA(q,it.text);it.score=saScore(it.g);it.done=true;renderQuiz()};
+    if(it.done) bindKw(it,()=>renderQuiz());
+  }
+  if($('#next')) $('#next').onclick=()=>{if(S.idx+1<total){S.idx++;renderQuiz();window.scrollTo(0,0)}else finish()};
+  $('#quit').onclick=()=>finish();
+}
+function kwChips(g){
+  return `<div class="kws">${g.kws.map((k,i)=>{const c=k.over??k.credit;const cls=c===1?'full':c===.5?'half':'miss';
+    return `<button class="kw ${cls} ${k.over!==null?'over':''}" data-kw="${i}" title="點一下切換：對 → 半對 → 錯"><b>${c===1?'✓':c===.5?'½':'✗'}</b>${esc(k.label)}</button>`}).join('')}</div>`;
+}
+function feedbackSA(it){
+  const q=it.q,g=it.g,sc=it.score;
+  const v=sc>=1?['verdict-ok','全對']:sc>=.6?['verdict-half','部分正確']:['verdict-no','需加強'];
+  return `<div class="fb">
+    <div class="scoreline"><span class="big mono ${v[0]}">${Math.round(sc*100)}%</span><span class="${v[0]}">${v[1]}</span>
+      <span class="muted mono" style="font-size:14px">${g.kws.filter(k=>(k.over??k.credit)===1).length} / ${g.kws.length} 個關鍵字</span></div>
+    ${kwChips(g)}
+    ${g.orderBad?`<div class="warn">順序有誤，此題以 80% 計　<button class="chip" data-waive style="font-size:13px;padding:2px 10px">${g.orderWaived?'恢復扣分':'不扣順序分'}</button></div>`:''}
+    <div class="hint">自動比對可能誤判，點關鍵字可手動改成對／半對／錯，分數會跟著更新。</div>
+    <div><div class="label">參考答案</div><div class="ans">${esc(q.answer)}${q.note?`\n\n📝 ${esc(q.note)}`:''}</div></div>
+  </div>`;
+}
+function cycleKw(g,i){const k=g.kws[i]; const c=k.over??k.credit; const nx=c===1?.5:c===.5?0:1; k.over=nx===k.credit?null:nx;}
+function bindKw(it,rerender){
+  document.querySelectorAll('[data-kw]').forEach(b=>b.onclick=()=>{cycleKw(it.g,+b.dataset.kw); it.score=saScore(it.g); rerender();});
+  const w=document.querySelector('[data-waive]'); if(w) w.onclick=()=>{it.g.orderWaived=!it.g.orderWaived;it.score=saScore(it.g);rerender()};
+}
+
+/* ================= 畫面：成績 ================= */
+function syncWrong(){
+  const wrong=new Set(store.get('qz-wrong',[]));
+  S.quiz.filter(x=>x.done).forEach(x=>{x.score<1?wrong.add(x.q.id):wrong.delete(x.q.id)});
+  store.set('qz-wrong',[...wrong]);
+}
+function quizScore(){return Math.round(S.quiz.reduce((a,x)=>a+(x.done?x.score:0),0)/S.quiz.length*100)}
+function finish(){
+  syncWrong();
+  const names=[...new Set(S.quiz.map(x=>subjName(x.q.subject)))].join('、');
+  const d=new Date(); const date=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  const hist=store.get('qz-hist',[]); hist.unshift({date,names,n:S.quiz.length,score:quizScore()}); store.set('qz-hist',hist.slice(0,30));
+  S.screen='result'; render(); window.scrollTo(0,0);
+  logScore();
+}
+function renderResult(){
+  const score=quizScore();
+  const mc=S.quiz.filter(x=>x.q.type==='mc'), sa=S.quiz.filter(x=>x.q.type==='sa');
+  const mcRight=mc.filter(x=>x.score===1).length;
+  const saAvg=sa.length?Math.round(sa.reduce((a,x)=>a+x.score,0)/sa.length*100):null;
+  const skipped=S.quiz.filter(x=>!x.done).length;
+  const missed=S.quiz.filter(x=>x.score<1).map(x=>x.q);
+  $('#app').innerHTML=`
+  <div class="stack">
+    <div><div class="eyebrow">測驗結果</div>
+      <div class="hero-score"><span class="num ${score>=80?'verdict-ok':score>=60?'verdict-half':'verdict-no'}">${score}</span><span class="muted" style="padding-bottom:10px">/ 100 分</span></div></div>
+    <div class="stats">
+      ${mc.length?`<div class="stat"><div class="label">選擇題</div><div class="v">${mcRight} / ${mc.length}</div></div>`:''}
+      ${sa.length?`<div class="stat"><div class="label">簡答題平均</div><div class="v">${saAvg}%</div></div>`:''}
+      <div class="stat"><div class="label">需複習</div><div class="v">${missed.length} 題</div></div>
+      ${skipped?`<div class="stat"><div class="label">未作答</div><div class="v">${skipped} 題</div></div>`:''}
+    </div>
+    <div class="row">
+      ${missed.length?`<button class="btn" id="retryWrong">重考這 ${missed.length} 題</button>`:''}
+      <button class="btn ghost" id="again">同設定再考一次</button>
+      <button class="btn ghost" id="home">回首頁</button>
+    </div>
+    <div class="stack" style="gap:10px"><h2>逐題檢討</h2>
+    <div class="review">${S.quiz.map((x,i)=>{
+      const c=!x.done?['muted','—']:x.score>=1?['verdict-ok','✓']:x.score>0?['verdict-half',Math.round(x.score*100)+'%']:['verdict-no','✗'];
+      let body='';
+      if(!x.done) body=`<div class="muted">未作答</div><div class="ans">${esc(x.q.type==='mc'?x.q.options[0]:x.q.answer)}</div>`;
+      else if(x.q.type==='mc') body=`<div>你的答案：<span class="${x.score?'verdict-ok':'verdict-no'}">${esc(x.pick)}</span></div>${x.score?'':`<div>正解：<span class="verdict-ok">${esc(x.q.options[0])}</span></div>`}`;
+      else body=`<div class="ans" style="background:transparent;border:1px solid var(--line)">${esc(x.text||'（空白）')}</div>${feedbackSA(x)}`;
+      return `<details data-i="${i}"><summary><span class="mono muted">${i+1}</span><span class="t">${esc(x.q.q)}</span><span class="dot ${c[0]}">${c[1]}</span></summary><div class="body">${body}</div></details>`}).join('')}</div></div>
+  </div>`;
+  document.querySelectorAll('.review details').forEach(dt=>{
+    const x=S.quiz[+dt.dataset.i]; if(x.q.type!=='sa'||!x.done)return;
+    dt.addEventListener('click',e=>{const b=e.target.closest('[data-kw],[data-waive]');if(!b)return;
+      e.preventDefault();
+      if(b.dataset.waive!==undefined) x.g.orderWaived=!x.g.orderWaived; else cycleKw(x.g,+b.dataset.kw);
+      x.score=saScore(x.g); syncWrong();
+      const hist=store.get('qz-hist',[]); if(hist[0]){hist[0].score=quizScore();store.set('qz-hist',hist)}
+      const open=+dt.dataset.i; renderResult(); const d=document.querySelector(`details[data-i="${open}"]`); if(d)d.open=true;});
+  });
+  if($('#retryWrong')) $('#retryWrong').onclick=()=>startQuiz(shuffle(missed));
+  $('#again').onclick=()=>startQuiz(shuffle(pool()).slice(0,S.count));
+  $('#home').onclick=()=>{S.screen='setup';render()};
+}
+
+
+
+/* ================= 題庫載入（Google 試算表 → 網站） ================= */
+function hashId(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return 'h'+(h>>>0).toString(36)}
+const YES=/^(是|v|y|yes|✓|✔|o|true|1)$/i;
+function rowsToBank(rows){
+  const subjects=[], byName=new Map();
+  for(const r of rows){
+    const [subj,type,q,answer,keys,ordered,w1,w2,w3,w4,note,id]=r.map(x=>String(x??'').trim());
+    if(!subj||!q) continue;
+    let s=byName.get(subj);
+    if(!s){s={id:hashId(subj),name:subj,questions:[]};byName.set(subj,s);subjects.push(s);}
+    const qid=id||hashId(subj+'|'+q);
+    if(/選/.test(type)){
+      const options=[answer,w1,w2,w3,w4].filter(Boolean);
+      if(options.length<2) continue;
+      s.questions.push({id:qid,type:'mc',q,options,note});
+    }else{
+      let k=keys.split(/\n|；|;/).map(x=>x.trim()).filter(Boolean);
+      if(!k.length) k=extractKeys(answer,q);
+      if(!k.length) continue;
+      s.questions.push({id:qid,type:'sa',q,answer,keys:k,ordered:YES.test(ordered),note});
+    }
+  }
+  return subjects.filter(s=>s.questions.length);
+}
+function useBank(subjects,status){
+  SUBJECTS=subjects; SUBJECTS.forEach(s=>s.questions.forEach(q=>{q.subject=s.id}));
+  BANK_STATUS=status;
+}
+async function loadBank(){
+  // 1. 先用上次存下的題庫，畫面馬上出來
+  const cache=store.get('qz-bank-cache',null);
+  if(cache&&cache.subjects) useBank(cache.subjects,'題庫更新中…');
+  else{
+    try{const r=await fetch('bank.json',{cache:'no-cache'});const b=await r.json();useBank(b.subjects,'題庫更新中…');}
+    catch(e){useBank([],'題庫載入失敗，請重新整理。');}
+  }
+  render();
+  // 2. 再向 Google 試算表要最新題庫
+  if(!CONFIG.SCRIPT_URL||CONFIG.SCRIPT_URL.startsWith('__')){BANK_STATUS='';if(S.screen==='setup')render();return;}
+  try{
+    const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),12000);
+    const r=await fetch(CONFIG.SCRIPT_URL+'?action=bank&t='+Date.now(),{signal:ctl.signal}); clearTimeout(t);
+    const data=await r.json();
+    const subjects=rowsToBank(data.rows||[]);
+    if(!subjects.length) throw new Error('empty');
+    const d=new Date();
+    useBank(subjects,`題庫已更新（${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}）`);
+    store.set('qz-bank-cache',{subjects:subjects.map(s=>({...s,questions:s.questions.map(({subject,...q})=>q)}))});
+  }catch(e){
+    BANK_STATUS=cache?'無法連到題庫，先用上次下載的版本。':'無法連到題庫，先用內建版本。';
+  }
+  if(S.screen==='setup') render();
+}
+
+/* ================= 裝置資訊 ================= */
+async function deviceInfo(){
+  const ua=navigator.userAgent; let os='其他',browser='其他',device='電腦';
+  let m;
+  const isIPad=/iPad/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1);
+  if(/iPhone|iPod/.test(ua)||isIPad){
+    m=ua.match(/OS (\d+)[_.](\d+)/); os='iOS'+(m?` ${m[1]}.${m[2]}`:'');
+    device=isIPad?'iPad':'iPhone';
+  }else if(/Android/.test(ua)){
+    m=ua.match(/Android ([\d.]+)/); os='Android'+(m?` ${m[1]}`:'');
+    const mm=ua.match(/Android [\d.]+;\s*(?:[a-z]{2}[-_][a-z]{2};\s*)?([^;)]+?)(?:\s+Build|\))/i);
+    const model=mm&&mm[1]!=='K'?mm[1].trim():'';
+    device=(/Mobile/.test(ua)?'Android 手機':'Android 平板')+(model?` ${model}`:'');
+  }else if(/Windows NT 10/.test(ua)){os='Windows 10/11';}
+  else if((m=ua.match(/Windows NT ([\d.]+)/))){os='Windows NT '+m[1];}
+  else if((m=ua.match(/Mac OS X (\d+)[_.](\d+)/))){os=`macOS ${m[1]}.${m[2]}`;}
+  else if(/CrOS/.test(ua)){os='ChromeOS';}
+  else if(/Linux/.test(ua)){os='Linux';}
+  // Chromium 可以拿到更精確的機型與 Windows 版本
+  try{
+    if(navigator.userAgentData&&navigator.userAgentData.getHighEntropyValues){
+      const h=await navigator.userAgentData.getHighEntropyValues(['model','platformVersion']);
+      if(h.model&&/Android/.test(os)) device=(/Mobile/.test(ua)?'Android 手機 ':'Android 平板 ')+h.model;
+      if(/Windows/.test(os)&&h.platformVersion){os=parseInt(h.platformVersion)>=13?'Windows 11':'Windows 10';}
+    }
+  }catch(e){}
+  if(/ Line\//i.test(ua)) browser='LINE 內建';
+  else if(/FBAN|FBAV/.test(ua)) browser='Facebook 內建';
+  else if(/Instagram/.test(ua)) browser='Instagram 內建';
+  else if((m=ua.match(/EdgA?\/(\d+)/))) browser='Edge '+m[1];
+  else if((m=ua.match(/SamsungBrowser\/(\d+)/))) browser='Samsung '+m[1];
+  else if((m=ua.match(/(?:CriOS|Chrome)\/(\d+)/))) browser='Chrome '+m[1];
+  else if((m=ua.match(/(?:FxiOS|Firefox)\/(\d+)/))) browser='Firefox '+m[1];
+  else if((m=ua.match(/Version\/(\d+).*Safari/))) browser='Safari '+m[1];
+  return {os,browser,device,
+    screen:`${screen.width}×${screen.height}`,
+    lang:navigator.language||'',
+    tz:(Intl.DateTimeFormat().resolvedOptions().timeZone)||''};
+}
+let IP_PROMISE=null;
+function getIP(){
+  if(!IP_PROMISE) IP_PROMISE=fetch(CONFIG.IP_API).then(r=>r.json()).then(d=>d.ip||'').catch(()=> '');
+  return IP_PROMISE;
+}
+function visitorId(){let v=store.get('qz-vid','');if(!v){v=Math.random().toString(36).slice(2,10);store.set('qz-vid',v)}return v}
+
+/* ================= 回傳紀錄 ================= */
+async function sendLog(payload){
+  if(!CONFIG.SCRIPT_URL||CONFIG.SCRIPT_URL.startsWith('__')) return;
+  try{
+    const [dev,ip]=await Promise.all([deviceInfo(),getIP()]);
+    const body=JSON.stringify({...payload,...dev,ip,vid:visitorId(),name:(S.name||'').trim()||'（未填）'});
+    await fetch(CONFIG.SCRIPT_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain;charset=utf-8'},body});
+  }catch(e){}
+}
+function logVisit(){
+  try{ if(sessionStorage.getItem('qz-visited')) return; sessionStorage.setItem('qz-visited','1'); }catch(e){}
+  sendLog({event:'進入'});
+}
+function logScore(){
+  const mc=S.quiz.filter(x=>x.q.type==='mc'), sa=S.quiz.filter(x=>x.q.type==='sa');
+  const detail=S.quiz.map((x,i)=>`${i+1}.${x.q.q.slice(0,18)}：${x.done?Math.round(x.score*100)+'%':'未答'}`).join('\n');
+  sendLog({event:'交卷',score:quizScore(),n:S.quiz.length,
+    subjects:[...new Set(S.quiz.map(x=>subjName(x.q.subject)))].join('、'),
+    mc:mc.length?`${mc.filter(x=>x.score===1).length}/${mc.length}`:'',
+    sa:sa.length?Math.round(sa.reduce((a,x)=>a+x.score,0)/sa.length*100)+'%':'',
+    detail});
+}
+
+function render(){ if(S.screen==='setup')renderSetup(); else if(S.screen==='quiz')renderQuiz(); else renderResult(); }
+loadBank().then(logVisit);
+</script>
+</body>
+</html>
