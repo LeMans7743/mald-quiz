@@ -1,15 +1,16 @@
 /**
  * 軍學科題庫｜Google Apps Script
- * 放在「軍學科題庫｜題庫與紀錄」試算表：擴充功能 → Apps Script，整段貼上後部署成網頁應用程式。
+ * 連到「軍學科題庫｜題庫與紀錄」試算表，部署成網頁應用程式。
  *  - GET  ：回傳「題庫」工作表（網站讀題目用）
  *  - POST ：把網站送來的使用紀錄寫進「紀錄」工作表
  * 這支程式只會「讀題庫」和「新增紀錄」，不會把紀錄回傳給任何人。
  */
+const SHEET_ID = '18b5osFQXzmjXllkZwTIIPHKFN5lpDUt7URT2kaNTzyk';
 const SHEET_BANK = '題庫';
 const SHEET_LOG = '紀錄';
 
 function doGet(e) {
-  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_BANK);
+  const sh = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_BANK);
   const values = sh.getDataRange().getDisplayValues();
   const rows = [];
   for (let i = 1; i < values.length; i++) {
@@ -36,7 +37,7 @@ function doPost(e) {
   const lock = LockService.getScriptLock();
   lock.tryLock(5000);
   try {
-    SpreadsheetApp.getActive().getSheetByName(SHEET_LOG).appendRow([
+    SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_LOG).appendRow([
       new Date(), safe(d.event), safe(d.name), safe(d.score), safe(d.n), safe(d.subjects),
       safe(d.mc), safe(d.sa), safe(d.detail), safe(d.ip), safe(d.os), safe(d.browser),
       safe(d.device), safe(d.screen), safe(d.lang), safe(d.tz), safe(d.vid)
