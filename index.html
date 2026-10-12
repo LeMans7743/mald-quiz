@@ -495,6 +495,11 @@ async function loadBank(){
     const data=await r.json();
     const subjects=rowsToBank(data.rows||[]);
     if(!subjects.length) throw new Error('empty');
+    // 試算表還沒有的科目，先用網站內建的版本補上（試算表加入同名科目後就以試算表為準）
+    try{const r2=await fetch('bank.json',{cache:'no-cache'});const b2=await r2.json();
+      const have=new Set(subjects.map(x=>x.name));
+      (b2.subjects||[]).forEach(x=>{if(!have.has(x.name))subjects.push({id:x.id,name:x.name,questions:x.questions});});
+    }catch(e){}
     const d=new Date();
     useBank(subjects,`題庫已更新（${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}）`);
     store.set('qz-bank-cache',{subjects:subjects.map(s=>({...s,questions:s.questions.map(({subject,...q})=>q)}))});
