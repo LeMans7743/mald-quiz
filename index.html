@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>軍學科題庫</title>
-<meta name="description" content="軍學科自我測驗：選擇題與簡答題，簡答題按關鍵字分項給分。">
+<meta name="description" content="軍學科自我測驗：是非題、單選題與簡答題，簡答題按關鍵字分項給分。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
@@ -72,7 +72,8 @@ button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px soli
 .bar i{display:block;height:100%;background:var(--signal);transition:width .3s}
 .qhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
 .tag{font-size:12px;font-weight:700;letter-spacing:.08em;padding:2px 8px;border-radius:3px;border:1px solid currentColor}
-.tag.mc{color:var(--accent)} .tag.sa{color:var(--signal)}
+.tag.mc{color:var(--accent)} .tag.sa{color:var(--signal)} .tag.tf{color:var(--ink)}
+.opts.tf .opt{font-size:18px;font-weight:700;justify-content:flex-start;padding:14px 18px}
 .qtext{font-size:20px;font-weight:700;line-height:1.55;margin:0}
 .opts{display:flex;flex-direction:column;gap:10px}
 .opt{display:flex;gap:12px;align-items:flex-start;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:12px 14px;font-size:16px}
@@ -255,7 +256,7 @@ const subjName=id=>(SUBJECTS.find(s=>s.id===id)||{}).name||'';
 function pool(){
   const wrong=new Set(store.get('qz-wrong',[]));
   return SUBJECTS.filter(s=>S.subjects.has(s.id)).flatMap(s=>s.questions)
-    .filter(q=>S.mode==='mix'||(S.mode==='mc'?q.type==='mc':q.type==='sa'))
+    .filter(q=>S.mode==='mix'||q.type===S.mode)
     .filter(q=>!S.wrongOnly||wrong.has(q.id));
 }
 function wrongCount(){const w=new Set(store.get('qz-wrong',[]));return SUBJECTS.filter(s=>S.subjects.has(s.id)).flatMap(s=>s.questions).filter(q=>w.has(q.id)).length}
@@ -276,7 +277,7 @@ function renderSetup(){
         ${SUBJECTS.length>1?`<button class="chip" id="allSubj">${SUBJECTS.every(x=>S.subjects.has(x.id))?'全不選':'全選'}</button>`:''}
       </div></div>
       <div><div class="label">題型</div><div class="seg" role="group">
-        ${[['mix','混合'],['mc','選擇題'],['sa','簡答題']].map(([k,t])=>`<button data-mode="${k}" aria-pressed="${S.mode===k}">${t}</button>`).join('')}
+        ${[['mix','混合'],['tf','是非題'],['mc','單選題'],['sa','簡答題']].map(([k,t])=>`<button data-mode="${k}" aria-pressed="${S.mode===k}">${t}</button>`).join('')}
       </div></div>
       <div><div class="label">題數</div><div class="row">
         <div class="stepper"><button data-step="-1" aria-label="減少">−</button><input id="cnt" type="number" min="1" max="${max}" value="${S.count}"><button data-step="1" aria-label="增加">＋</button></div>
@@ -301,19 +302,24 @@ function renderSetup(){
   const all=$('#allSubj'); if(all) all.onclick=()=>{const every=SUBJECTS.every(x=>S.subjects.has(x.id));S.subjects=new Set(every?[]:SUBJECTS.map(x=>x.id));store.set('qz-subjects',[...S.subjects]);renderSetup()};
 }
 
+const TYPE_ORDER={tf:0,mc:1,sa:2};
+const TYPE_NAME={tf:'是非題',mc:'單選題',sa:'簡答題'};
+const TF_OPTS=['○ 正確','✕ 錯誤'];
 function startQuiz(qs){
-  S.quiz=qs.map(q=>({q,done:false,score:0,opts:q.type==='mc'?shuffle(q.options):null,pick:null,text:'',g:null}));
+  qs=qs.slice().sort((a,b)=>TYPE_ORDER[a.type]-TYPE_ORDER[b.type]);   // 是非 → 單選 → 簡答
+  S.quiz=qs.map(q=>({q,done:false,score:0,opts:q.type==='mc'?shuffle(q.options):q.type==='tf'?TF_OPTS.slice():null,pick:null,text:'',g:null}));
   S.idx=0; S.screen='quiz'; render(); window.scrollTo(0,0);
 }
 
 /* ================= 畫面：作答 ================= */
+function typePos(i){const t=S.quiz[i].q.type;const same=S.quiz.filter(x=>x.q.type===t);return `共 ${same.length} 題，第 ${same.indexOf(S.quiz[i])+1} 題`;}
 function renderQuiz(){
   const it=S.quiz[S.idx], q=it.q, total=S.quiz.length;
   let body='';
-  if(q.type==='mc'){
-    body=`<div class="opts">${it.opts.map((o,i)=>{
+  if(q.type==='mc'||q.type==='tf'){
+    body=`<div class="opts${q.type==='tf'?' tf':''}">${it.opts.map((o,i)=>{
       let cls=''; if(it.done){ if(o===q.options[0])cls='right'; else if(o===it.pick)cls='wrong'; }
-      return `<button class="opt ${cls}" data-opt="${i}" ${it.done?'disabled':''}><span class="k">${'ABCDEF'[i]}</span><span>${esc(o)}</span></button>`}).join('')}</div>`;
+      return `<button class="opt ${cls}" data-opt="${i}" ${it.done?'disabled':''}>${q.type==='tf'?'':`<span class="k">${'ABCDEF'[i]}</span>`}<span>${esc(o)}</span></button>`}).join('')}</div>`;
     if(it.done) body+=`<div class="fb"><div class="scoreline"><span class="big ${it.score?'verdict-ok':'verdict-no'}">${it.score?'答對':'答錯'}</span>${it.score?'':`<span class="muted">正解：${esc(q.options[0])}</span>`}</div>${q.note?`<div class="ans">📝 ${esc(q.note)}</div>`:''}</div>`;
   } else {
     body=`<textarea id="ans" placeholder="直接寫答案，順序、標點、空格都不影響給分" ${it.done?'readonly':''}>${esc(it.text)}</textarea>
@@ -327,7 +333,7 @@ function renderQuiz(){
       <div class="bar"><i style="width:${(S.idx+(it.done?1:0))/total*100}%"></i></div>
     </div>
     <div class="panel stack">
-      <div class="row"><span class="tag ${q.type}">${q.type==='mc'?'選擇題':'簡答題'}</span><span class="muted" style="font-size:13px">${esc(subjName(q.subject))}</span></div>
+      <div class="row"><span class="tag ${q.type}">${TYPE_NAME[q.type]}</span><span class="muted mono" style="font-size:13px">${typePos(S.idx)}</span><span class="muted" style="font-size:13px">${esc(subjName(q.subject))}</span></div>
       <p class="qtext">${esc(q.q)}</p>
       ${body}
       <div class="row">
@@ -335,7 +341,7 @@ function renderQuiz(){
       </div>
     </div>
   </div>`;
-  if(q.type==='mc'&&!it.done) document.querySelectorAll('[data-opt]').forEach(b=>b.onclick=()=>{it.pick=it.opts[+b.dataset.opt];it.score=it.pick===q.options[0]?1:0;it.done=true;renderQuiz()});
+  if((q.type==='mc'||q.type==='tf')&&!it.done) document.querySelectorAll('[data-opt]').forEach(b=>b.onclick=()=>{it.pick=it.opts[+b.dataset.opt];it.score=it.pick===q.options[0]?1:0;it.done=true;renderQuiz()});
   if(q.type==='sa'){
     const ta=$('#ans'); if(!it.done){ta.focus();ta.oninput=e=>it.text=e.target.value;}
     if($('#submit')) $('#submit').onclick=()=>{it.text=ta.value;it.g=gradeSA(q,it.text);it.score=saScore(it.g);it.done=true;renderQuiz()};
@@ -405,8 +411,8 @@ function finish(){
 }
 function renderResult(){
   const score=quizScore();
-  const mc=S.quiz.filter(x=>x.q.type==='mc'), sa=S.quiz.filter(x=>x.q.type==='sa');
-  const mcRight=mc.filter(x=>x.score===1).length;
+  const tf=S.quiz.filter(x=>x.q.type==='tf'), mc=S.quiz.filter(x=>x.q.type==='mc'), sa=S.quiz.filter(x=>x.q.type==='sa');
+  const mcRight=mc.filter(x=>x.score===1).length, tfRight=tf.filter(x=>x.score===1).length;
   const saAvg=sa.length?Math.round(sa.reduce((a,x)=>a+x.score,0)/sa.length*100):null;
   const skipped=S.quiz.filter(x=>!x.done).length;
   const missed=S.quiz.filter(x=>x.score<1).map(x=>x.q);
@@ -415,7 +421,8 @@ function renderResult(){
     <div><div class="eyebrow">測驗結果</div>
       <div class="hero-score"><span class="num ${score>=80?'verdict-ok':score>=60?'verdict-half':'verdict-no'}">${score}</span><span class="muted" style="padding-bottom:10px">/ 100 分</span></div></div>
     <div class="stats">
-      ${mc.length?`<div class="stat"><div class="label">選擇題</div><div class="v">${mcRight} / ${mc.length}</div></div>`:''}
+      ${tf.length?`<div class="stat"><div class="label">是非題</div><div class="v">${tfRight} / ${tf.length}</div></div>`:''}
+      ${mc.length?`<div class="stat"><div class="label">單選題</div><div class="v">${mcRight} / ${mc.length}</div></div>`:''}
       ${sa.length?`<div class="stat"><div class="label">簡答題平均</div><div class="v">${saAvg}%</div></div>`:''}
       <div class="stat"><div class="label">需複習</div><div class="v">${missed.length} 題</div></div>
       ${skipped?`<div class="stat"><div class="label">未作答</div><div class="v">${skipped} 題</div></div>`:''}
@@ -429,8 +436,8 @@ function renderResult(){
     <div class="review">${S.quiz.map((x,i)=>{
       const c=!x.done?['muted','—']:x.score>=1?['verdict-ok','✓']:x.score>0?['verdict-half',Math.round(x.score*100)+'%']:['verdict-no','✗'];
       let body='';
-      if(!x.done) body=`<div class="muted">未作答</div><div class="ans">${esc(x.q.type==='mc'?x.q.options[0]:x.q.answer)}</div>`;
-      else if(x.q.type==='mc') body=`<div>你的答案：<span class="${x.score?'verdict-ok':'verdict-no'}">${esc(x.pick)}</span></div>${x.score?'':`<div>正解：<span class="verdict-ok">${esc(x.q.options[0])}</span></div>`}`;
+      if(!x.done) body=`<div class="muted">未作答</div><div class="ans">${esc(x.q.type!=='sa'?x.q.options[0]:x.q.answer)}</div>`;
+      else if(x.q.type!=='sa') body=`<div>你的答案：<span class="${x.score?'verdict-ok':'verdict-no'}">${esc(x.pick)}</span></div>${x.score?'':`<div>正解：<span class="verdict-ok">${esc(x.q.options[0])}</span></div>`}`;
       else body=`<div class="ans" style="background:transparent;border:1px solid var(--line)">${esc(x.text||'（空白）')}</div>${feedbackSA(x)}`;
       return `<details data-i="${i}"><summary><span class="mono muted">${i+1}</span><span class="t">${esc(x.q.q)}</span><span class="dot ${c[0]}">${c[1]}</span></summary><div class="body">${body}</div></details>`}).join('')}</div></div>
   </div>`;
@@ -461,10 +468,13 @@ function rowsToBank(rows){
     let s=byName.get(subj);
     if(!s){s={id:hashId(subj),name:subj,questions:[]};byName.set(subj,s);subjects.push(s);}
     const qid=id||hashId(subj+'|'+q);
-    if(/選/.test(type)){
+    if(/是非/.test(type)){
+      const ok=/^(o|○|◯|對|正確|是|true|v|✓)/i.test(answer);
+      s.questions.push(normalizeQ({id:qid,type:'tf',q,options:ok?TF_OPTS.slice():TF_OPTS.slice().reverse(),note}));
+    }else if(/選/.test(type)){
       const options=[answer,w1,w2,w3,w4].filter(Boolean);
       if(options.length<2) continue;
-      s.questions.push({id:qid,type:'mc',q,options,note});
+      s.questions.push(normalizeQ({id:qid,type:'mc',q,options,note}));
     }else{
       let k=keys.split(/\n|；|;/).map(x=>x.trim()).filter(Boolean);
       if(!k.length) k=extractKeys(answer,q);
@@ -474,7 +484,17 @@ function rowsToBank(rows){
   }
   return subjects.filter(s=>s.questions.length);
 }
+/* 舊格式：題目以【是非】開頭的選擇題，轉成是非題 */
+function normalizeQ(q){
+  if(q.type==='mc'&&/^【是非】/.test(q.q)){
+    const ok=/正確|^○|^O/i.test(q.options[0]);
+    return {...q,type:'tf',q:q.q.replace(/^【是非】\s*/,''),options:ok?TF_OPTS.slice():TF_OPTS.slice().reverse()};
+  }
+  if(q.type==='tf'&&!/正確|錯誤/.test(q.options?.[0]||'')) q.options=TF_OPTS.slice();
+  return q;
+}
 function useBank(subjects,status){
+  subjects.forEach(s=>{s.questions=s.questions.map(normalizeQ)});
   SUBJECTS=subjects; SUBJECTS.forEach(s=>s.questions.forEach(q=>{q.subject=s.id}));
   BANK_STATUS=status;
 }
@@ -569,11 +589,11 @@ function logVisit(){
   sendLog({event:'進入'});
 }
 function logScore(){
-  const mc=S.quiz.filter(x=>x.q.type==='mc'), sa=S.quiz.filter(x=>x.q.type==='sa');
+  const tf=S.quiz.filter(x=>x.q.type==='tf'), mc=S.quiz.filter(x=>x.q.type==='mc'), sa=S.quiz.filter(x=>x.q.type==='sa');
   const detail=S.quiz.map((x,i)=>`${i+1}.${x.q.q.slice(0,18)}：${x.done?Math.round(x.score*100)+'%':'未答'}`).join('\n');
   sendLog({event:'交卷',score:quizScore(),n:S.quiz.length,
     subjects:[...new Set(S.quiz.map(x=>subjName(x.q.subject)))].join('、'),
-    mc:mc.length?`${mc.filter(x=>x.score===1).length}/${mc.length}`:'',
+    mc:[tf.length?`是非 ${tf.filter(x=>x.score===1).length}/${tf.length}`:'',mc.length?`單選 ${mc.filter(x=>x.score===1).length}/${mc.length}`:''].filter(Boolean).join('；'),
     sa:sa.length?Math.round(sa.reduce((a,x)=>a+x.score,0)/sa.length*100)+'%':'',
     detail});
 }
